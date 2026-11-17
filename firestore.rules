@@ -1,0 +1,296 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Hardened Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && (
+        request.auth.token.email_verified == true ||
+        request.auth.token.firebase.sign_in_provider == 'password'
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email_verified == true && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'afumbomboyo@gmail.com')
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEnrollmentId(id) {
+      return id is string && id.size() >= 5 && id.size() <= 256 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Blueprints ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'role', 'track', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'role', 'track', 'institution', 'bio', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 100
+        && data.role is string && data.role in ['student', 'tutor']
+        && data.track is string && data.track in ['university', 'law_school']
+        && (!('institution' in data) || (data.institution is string && data.institution.size() <= 120))
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 500))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivateInfo(data) {
+      return data.keys().hasAll(['uid', 'email', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'dob', 'contactMethod', 'phoneNumber', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && (!('dob' in data) || (data.dob is string && data.dob.size() <= 20))
+        && (!('contactMethod' in data) || (data.contactMethod is string && data.contactMethod in ['email', 'phone']))
+        && (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 30))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidActiveSession(data) {
+      return data.keys().hasAll(['uid', 'sessionId', 'deviceLabel', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'sessionId', 'deviceLabel', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.sessionId is string && data.sessionId.size() >= 8 && data.sessionId.size() <= 128 && data.sessionId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.deviceLabel is string && data.deviceLabel.size() >= 2 && data.deviceLabel.size() <= 120
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCourse(data) {
+      return data.keys().hasAll([
+        'id', 'tutorId', 'tutorName', 'title', 'subtitle', 'description',
+        'section', 'subject', 'price', 'thumbnailUrl', 'introVideoId',
+        'introDurationLabel', 'lessonCount', 'status', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'tutorId', 'tutorName', 'title', 'subtitle', 'description',
+        'section', 'subject', 'price', 'thumbnailUrl', 'introVideoId',
+        'introDurationLabel', 'lessonCount', 'status', 'createdAt', 'updatedAt'
+      ])
+      && isValidId(data.id)
+      && isValidId(data.tutorId)
+      && data.tutorName is string && data.tutorName.size() >= 2 && data.tutorName.size() <= 100
+      && data.title is string && data.title.size() >= 3 && data.title.size() <= 140
+      && data.subtitle is string && data.subtitle.size() >= 3 && data.subtitle.size() <= 240
+      && data.description is string && data.description.size() >= 10 && data.description.size() <= 3000
+      && data.section is string && data.section in ['university', 'law_school']
+      && data.subject is string && data.subject.size() >= 2 && data.subject.size() <= 80
+      && data.price is number && data.price >= 0 && data.price <= 10000000
+      && data.thumbnailUrl is string && data.thumbnailUrl.size() >= 1 && data.thumbnailUrl.size() <= 500
+      && isValidId(data.introVideoId) && data.introVideoId.size() >= 3
+      && data.introDurationLabel is string && data.introDurationLabel.size() >= 2 && data.introDurationLabel.size() <= 32
+      && data.lessonCount is number && data.lessonCount >= 0 && data.lessonCount <= 200
+      && data.status is string && data.status in ['published', 'draft']
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidLesson(data, courseId) {
+      return data.keys().hasAll([
+        'id', 'courseId', 'tutorId', 'courseStatus', 'title',
+        'order', 'durationLabel', 'isFreeIntro', 'videoId', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'courseId', 'tutorId', 'courseStatus', 'title',
+        'summary', 'order', 'durationLabel', 'isFreeIntro', 'videoId', 'createdAt'
+      ])
+      && isValidId(data.id) && data.id.size() >= 3
+      && isValidId(data.courseId) && data.courseId == courseId
+      && isValidId(data.tutorId)
+      && data.courseStatus is string && data.courseStatus in ['published', 'draft']
+      && data.title is string && data.title.size() >= 2 && data.title.size() <= 140
+      && (!('summary' in data) || (data.summary is string && data.summary.size() <= 600))
+      && data.order is number && data.order >= 1 && data.order <= 200
+      && data.durationLabel is string && data.durationLabel.size() >= 2 && data.durationLabel.size() <= 32
+      && data.isFreeIntro is bool
+      && isValidId(data.videoId) && data.videoId.size() >= 3
+      && data.createdAt is timestamp;
+    }
+
+    function isValidEnrollment(data, enrollmentId) {
+      return data.keys().hasAll([
+        'id', 'studentId', 'courseId', 'tutorId', 'courseTitle', 'amountPaid', 'purchasedAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'studentId', 'courseId', 'tutorId', 'courseTitle', 'amountPaid', 'purchasedAt'
+      ])
+      && isValidEnrollmentId(data.id)
+      && data.id == enrollmentId
+      && isValidId(data.studentId)
+      && data.studentId == request.auth.uid
+      && isValidId(data.courseId) && data.courseId.size() >= 3
+      && enrollmentId == (request.auth.uid + '_' + data.courseId)
+      && isValidId(data.tutorId)
+      && data.courseTitle is string && data.courseTitle.size() >= 3 && data.courseTitle.size() <= 140
+      && data.amountPaid is number && data.amountPaid >= 0 && data.amountPaid <= 10000000
+      && data.purchasedAt is timestamp;
+    }
+
+    function isRegisteredTutor() {
+      return isVerified()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'tutor';
+    }
+
+    // --- Collection Rules ---
+
+    // 1. User Profiles (No PII stored here; strict owner access)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow create: if isVerified() && isValidId(userId) && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerified() && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && (isOwner(userId) || isAdmin())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'role', 'track', 'institution', 'bio', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(userId);
+
+      // Isolated Private PII Subcollection
+      match /private/{docId} {
+        allow get: if isValidId(userId) && docId == 'info' && (isOwner(userId) || isAdmin());
+        allow create: if isVerified() && isValidId(userId) && docId == 'info' && isOwner(userId)
+          && isValidUserPrivateInfo(incoming())
+          && incoming().updatedAt == request.time;
+        allow update: if isVerified() && isValidId(userId) && docId == 'info' && (isOwner(userId) || isAdmin())
+          && isValidUserPrivateInfo(incoming())
+          && incoming().uid == existing().uid
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'dob', 'contactMethod', 'phoneNumber', 'updatedAt']);
+        allow delete: if isAdmin() && isValidId(userId);
+      }
+    }
+
+    // 2. Active Sessions (Single-login enforcement)
+    match /active_sessions/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow create: if isVerified() && isValidId(userId) && isOwner(userId)
+        && isValidActiveSession(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if isVerified() && isValidId(userId) && isOwner(userId)
+        && isValidActiveSession(incoming())
+        && incoming().uid == existing().uid
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['sessionId', 'deviceLabel', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(userId) && isOwner(userId);
+    }
+
+    // 3. Courses (Publicly browsable published catalog; tutor-owned mutations)
+    match /courses/{courseId} {
+      allow get: if isValidId(courseId) && (
+        resource.data.status == 'published' ||
+        (isSignedIn() && (resource.data.tutorId == request.auth.uid || isAdmin()))
+      );
+      allow list: if resource.data.status == 'published' ||
+        (isSignedIn() && resource.data.tutorId == request.auth.uid);
+      allow create: if isValidId(courseId) && isRegisteredTutor()
+        && isValidCourse(incoming())
+        && incoming().id == courseId
+        && incoming().tutorId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(courseId) && isVerified()
+        && isValidCourse(incoming())
+        && (existing().tutorId == request.auth.uid || isAdmin())
+        && incoming().id == existing().id
+        && incoming().tutorId == existing().tutorId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'tutorName', 'title', 'subtitle', 'description', 'section', 'subject',
+          'price', 'thumbnailUrl', 'introVideoId', 'introDurationLabel',
+          'lessonCount', 'status', 'updatedAt'
+        ]);
+      allow delete: if isValidId(courseId) && isVerified() && (existing().tutorId == request.auth.uid || isAdmin());
+
+      // 4. Course Lessons (Master Gate: Parent course ownership for mutations)
+      match /lessons/{lessonId} {
+        allow get: if isValidId(courseId) && isValidId(lessonId) && (
+          resource.data.courseStatus == 'published' ||
+          (isSignedIn() && (resource.data.tutorId == request.auth.uid || isAdmin()))
+        );
+        allow list: if resource.data.courseStatus == 'published' ||
+          (isSignedIn() && resource.data.tutorId == request.auth.uid);
+        allow create: if isValidId(courseId) && isValidId(lessonId) && isVerified()
+          && isValidLesson(incoming(), courseId)
+          && incoming().id == lessonId
+          && incoming().tutorId == request.auth.uid
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/courses/$(courseId))
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.tutorId == request.auth.uid;
+        allow update: if isValidId(courseId) && isValidId(lessonId) && isVerified()
+          && isValidLesson(incoming(), courseId)
+          && (
+            get(/databases/$(database)/documents/courses/$(courseId)).data.tutorId == request.auth.uid ||
+            isAdmin()
+          )
+          && incoming().id == existing().id
+          && incoming().courseId == existing().courseId
+          && incoming().tutorId == existing().tutorId
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'courseStatus', 'title', 'summary', 'order', 'durationLabel', 'isFreeIntro', 'videoId'
+          ]);
+        allow delete: if isValidId(courseId) && isValidId(lessonId) && isVerified() && (
+          get(/databases/$(database)/documents/courses/$(courseId)).data.tutorId == request.auth.uid ||
+          isAdmin()
+        );
+      }
+    }
+
+    // 5. Enrollments (Terminal purchase records; immutable once created)
+    match /enrollments/{enrollmentId} {
+      allow get: if isValidEnrollmentId(enrollmentId) && isSignedIn() && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.tutorId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.tutorId == request.auth.uid
+      );
+      allow create: if isValidEnrollmentId(enrollmentId) && isVerified()
+        && isValidEnrollment(incoming(), enrollmentId)
+        && incoming().purchasedAt == request.time;
+      allow update: if false;
+      allow delete: if isAdmin() && isValidEnrollmentId(enrollmentId);
+    }
+
+    // 6. Admins lookup
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, write: if false;
+    }
+  }
+}

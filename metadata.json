@@ -1,0 +1,8 @@
+{
+  "name": "LAW STEAD",
+  "description": "Legal education marketplace for University Law and Law School students with protected streaming and tutor course publishing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

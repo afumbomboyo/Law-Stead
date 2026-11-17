@@ -1,0 +1,352 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Publicly safe user profile for LAW STEAD students and tutors.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "enum": ["student", "tutor"]
+        },
+        "track": {
+          "type": "string",
+          "enum": ["university", "law_school"]
+        },
+        "institution": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "bio": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "role", "track", "createdAt", "updatedAt"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated private PII record for an authenticated user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "dob": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "contactMethod": {
+          "type": "string",
+          "enum": ["email", "phone"]
+        },
+        "phoneNumber": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "updatedAt"]
+    },
+    "ActiveSession": {
+      "title": "ActiveSession",
+      "description": "Single active session lock enforcing one concurrent login per account.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "deviceLabel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "sessionId", "deviceLabel", "updatedAt"]
+    },
+    "Course": {
+      "title": "Course",
+      "description": "Legal education course offered on LAW STEAD under University Law or Law School.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "tutorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "tutorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 140
+        },
+        "subtitle": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 240
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 3000
+        },
+        "section": {
+          "type": "string",
+          "enum": ["university", "law_school"]
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "price": {
+          "type": "number"
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "introVideoId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "introDurationLabel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32
+        },
+        "lessonCount": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["published", "draft"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "tutorId",
+        "tutorName",
+        "title",
+        "subtitle",
+        "description",
+        "section",
+        "subject",
+        "price",
+        "thumbnailUrl",
+        "introVideoId",
+        "introDurationLabel",
+        "lessonCount",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Lesson": {
+      "title": "Lesson",
+      "description": "Individual lecture or free introduction video belonging to a LAW STEAD course.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "courseId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "tutorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "courseStatus": {
+          "type": "string",
+          "enum": ["published", "draft"]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "order": {
+          "type": "number"
+        },
+        "durationLabel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32
+        },
+        "isFreeIntro": {
+          "type": "boolean"
+        },
+        "videoId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "courseId",
+        "tutorId",
+        "courseStatus",
+        "title",
+        "order",
+        "durationLabel",
+        "isFreeIntro",
+        "videoId",
+        "createdAt"
+      ]
+    },
+    "Enrollment": {
+      "title": "Enrollment",
+      "description": "Verified student purchase record unlocking paid course lessons.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 256,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "studentId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "courseId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "tutorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "courseTitle": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 140
+        },
+        "amountPaid": {
+          "type": "number"
+        },
+        "purchasedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "studentId", "courseId", "tutorId", "courseTitle", "amountPaid", "purchasedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Publicly safe user profile keyed by Firebase Auth UID."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Private PII subcollection accessible only to the owning user."
+    },
+    "/active_sessions/{userId}": {
+      "schema": { "$ref": "#/entities/ActiveSession" },
+      "description": "Single-session lock record ensuring only one login is active per account."
+    },
+    "/courses/{courseId}": {
+      "schema": { "$ref": "#/entities/Course" },
+      "description": "Legal courses published by tutors across University Law and Law School."
+    },
+    "/courses/{courseId}/lessons/{lessonId}": {
+      "schema": { "$ref": "#/entities/Lesson" },
+      "description": "Syllabus lessons and free intro video metadata under a course."
+    },
+    "/enrollments/{enrollmentId}": {
+      "schema": { "$ref": "#/entities/Enrollment" },
+      "description": "Course purchase records keyed deterministically by studentId_courseId."
+    }
+  }
+}
