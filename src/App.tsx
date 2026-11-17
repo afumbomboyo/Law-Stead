@@ -89,12 +89,14 @@ export default function App() {
 
   // Hidden /register/tutor route detection (zero public links on main platform)
   const [isTutorRegisterRoute, setIsTutorRegisterRoute] = useState(
-    () => window.location.pathname === '/register/tutor'
+    () => window.location.pathname.replace(/\/+$/, '') === '/register/tutor'
   );
 
   useEffect(() => {
     const handlePopState = () => {
-      setIsTutorRegisterRoute(window.location.pathname === '/register/tutor');
+      setIsTutorRegisterRoute(
+        window.location.pathname.replace(/\/+$/, '') === '/register/tutor'
+      );
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);

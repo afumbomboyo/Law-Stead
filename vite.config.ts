@@ -25,6 +25,12 @@ export default defineConfig(() => {
           if (fs.existsSync(distDir) && fs.existsSync(srcAssets)) {
             fs.cpSync(srcAssets, distAssets, {recursive: true, force: true});
           }
+          const distIndex = path.join(distDir, 'index.html');
+          if (fs.existsSync(distIndex)) {
+            const tutorRouteDir = path.join(distDir, 'register', 'tutor');
+            fs.mkdirSync(tutorRouteDir, {recursive: true});
+            fs.copyFileSync(distIndex, path.join(tutorRouteDir, 'index.html'));
+          }
         },
       },
     ],
