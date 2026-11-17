@@ -61,6 +61,7 @@ import { AboutSection } from './components/AboutSection';
 import { ContactSection } from './components/ContactSection';
 import { AuthModal } from './components/AuthModal';
 import { SingleSessionModal } from './components/SingleSessionModal';
+import { SEEDED_CATALOG } from './data/seededCatalog';
 
 const HERO_IMAGE_URL = '/src/assets/images/hero_law_library_1794933669409.jpg';
 
@@ -130,20 +131,27 @@ export default function App() {
   const [kickedMessage, setKickedMessage] = useState<string | null>(null);
   const intentionalSignOutRef = useRef(false);
 
-  // Catalog & Enrollments
-  const [seededCourses, setSeededCourses] = useState<Course[]>([]);
-  const [seededLessonsByCourse, setSeededLessonsByCourse] = useState<Record<string, Lesson[]>>({});
+  // Catalog & Enrollments (bundled fallback ensures catalog renders on static hosts like Vercel)
+  const [seededCourses, setSeededCourses] = useState<Course[]>(SEEDED_CATALOG.courses);
+  const [seededLessonsByCourse, setSeededLessonsByCourse] = useState<Record<string, Lesson[]>>(
+    SEEDED_CATALOG.lessonsByCourse
+  );
   const [firestoreCourses, setFirestoreCourses] = useState<Course[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [heroImgFailed, setHeroImgFailed] = useState(false);
 
-  // Fetch curated foundational catalog from Express
+  // Refresh foundational catalog from Express when running full-stack server
   useEffect(() => {
     fetch('/api/catalog')
-      .then((r) => r.json())
-      .then((data: { courses?: Course[]; lessonsByCourse?: Record<string, Lesson[]> }) => {
-        if (data.courses) setSeededCourses(data.courses);
+      .then((r) => {
+        const contentType = r.headers.get('content-type') || '';
+        if (!r.ok || !contentType.includes('application/json')) return null;
+        return r.json();
+      })
+      .then((data: { courses?: Course[]; lessonsByCourse?: Record<string, Lesson[]> } | null) => {
+        if (!data) return;
+        if (Array.isArray(data.courses) && data.courses.length > 0) setSeededCourses(data.courses);
         if (data.lessonsByCourse) setSeededLessonsByCourse(data.lessonsByCourse);
       })
       .catch(() => undefined);

@@ -80,7 +80,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             className="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 px-3.5 py-2 rounded-lg bg-[#0F172A] text-white text-xs font-semibold hover:bg-[#1E3A5F] transition-colors whitespace-nowrap shrink-0"
           >
             <Play className="w-3.5 h-3.5" />
-            {isEnrolled ? 'Continue Course' : 'Watch Free Intro'}
+            {isEnrolled ? 'Continue Course' : 'View Course'}
           </button>
         </div>
       </div>

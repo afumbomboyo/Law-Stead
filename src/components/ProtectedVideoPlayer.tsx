@@ -92,6 +92,14 @@ export const ProtectedVideoPlayer: React.FC<ProtectedVideoPlayerProps> = ({
           }),
         });
 
+        const contentType = resp.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          if (!cancelled) {
+            setErrorMsg('Protected video stream server is required to authorize playback.');
+          }
+          return;
+        }
+
         const data = (await resp.json()) as { streamUrl?: string; error?: string };
         if (cancelled) return;
 
